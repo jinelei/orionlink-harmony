@@ -96,43 +96,44 @@ struct MainContentPage {
             .width(10)
             .height(10)
             .borderRadius(5)
-            .backgroundColor(this.connected ? '#4CAF50' : '#FF9800')
+            .backgroundColor(this.connected ? $r('app.color.status_connected') : $r('app.color.status_disconnected'))
 
           Text(this.connected ? '已连接' : '未连接')
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
             .margin({ left: 6 })
 
           Text(`${this.serverConfig.ip}:${this.serverConfig.port}`)
             .fontSize(14)
-            .fontColor('#666666')
+            .fontColor($r('app.color.text_secondary'))
             .margin({ left: 12 })
 
           Blank()
 
           Text(this.touchInfo)
             .fontSize(12)
-            .fontColor('#999999')
+            .fontColor($r('app.color.text_tertiary'))
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .width('100%')
         .height(48)
         .padding({ left: 16, right: 16 })
-        .backgroundColor('#FFFFFF')
+        .backgroundColor($r('app.color.toolbar_background'))
         .alignItems(VerticalAlign.Center)
 
         Column() {
           Text('触摸控制区')
             .fontSize(20)
-            .fontColor('#CCCCCC')
+            .fontColor($r('app.color.text_hint'))
             .fontWeight(FontWeight.Bold)
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .backgroundColor('#E8E8E8')
+        .backgroundColor($r('app.color.touch_area_background'))
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             let touch = event.touches[0];
@@ -150,10 +151,11 @@ struct MainContentPage {
             Text('调试日志')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
             Blank()
             Text(`共${this.debugLogs.length}条`)
               .fontSize(12)
-              .fontColor('#999999')
+              .fontColor($r('app.color.text_tertiary'))
           }
           .width('100%')
           .padding({ left: 12, right: 12 })
@@ -166,15 +168,15 @@ struct MainContentPage {
                 Row() {
                   Text(log.time)
                     .fontSize(11)
-                    .fontColor('#999999')
+                    .fontColor($r('app.color.log_time'))
                     .width(80)
                   Text(`[${log.source}]`)
                     .fontSize(11)
-                    .fontColor(log.source === '发送失败' ? '#FF4444' : '#1976D2')
+                    .fontColor(log.source === '发送失败' ? $r('app.color.log_source_error') : $r('app.color.log_source_normal'))
                     .width(60)
                   Text(log.message)
                     .fontSize(11)
-                    .fontColor('#333333')
+                    .fontColor($r('app.color.log_message'))
                     .layoutWeight(1)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -186,15 +188,15 @@ struct MainContentPage {
           }
           .width('100%')
           .height(180)
-          .divider({ strokeWidth: 0.5, color: '#EEEEEE' })
+          .divider({ strokeWidth: 0.5, color: $r('app.color.divider') })
         }
         .width('100%')
-        .backgroundColor('#FAFAFA')
-        .border({ width: 1, color: '#DDDDDD' })
+        .backgroundColor($r('app.color.log_panel_background'))
+        .border({ width: 1, color: $r('app.color.border') })
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F5F5F5')
+      .backgroundColor($r('app.color.page_background'))
     }
     .hideTitleBar(true)
     .onReady((context: NavDestinationContext) => {

@@ -67,10 +67,11 @@ struct ServerListPage {
         Text('OrionLink')
           .fontSize(28)
           .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
           .margin({ top: 20, bottom: 8 })
         Text('选择服务器连接')
           .fontSize(16)
-          .fontColor('#999999')
+          .fontColor($r('app.color.text_tertiary'))
           .margin({ bottom: 20 })
 
         if (this.serverList.length > 0) {
@@ -82,11 +83,12 @@ struct ServerListPage {
                     Text(item.name)
                       .fontSize(18)
                       .fontWeight(FontWeight.Medium)
+                      .fontColor($r('app.color.text_primary'))
                       .maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis })
                     Text(`${item.ip}:${item.port}`)
                       .fontSize(14)
-                      .fontColor('#666666')
+                      .fontColor($r('app.color.text_secondary'))
                       .margin({ top: 4 })
                   }
                   .alignItems(HorizontalAlign.Start)
@@ -106,7 +108,7 @@ struct ServerListPage {
                     .height(36)
                     .type(ButtonType.Normal)
                     .borderRadius(18)
-                    .backgroundColor('#FF4444')
+                    .backgroundColor($r('app.color.error'))
                     .margin({ left: 8 })
                     .onClick(() => {
                       this.deleteServer(index);
@@ -114,9 +116,9 @@ struct ServerListPage {
                 }
                 .width('100%')
                 .padding(16)
-                .backgroundColor('#FFFFFF')
+                .backgroundColor($r('app.color.card_background'))
                 .borderRadius(12)
-                .shadow({ radius: 2, color: '#1A000000', offsetY: 1 })
+                .shadow({ radius: 2, color: $r('app.color.card_shadow'), offsetY: 1 })
               }
             }, (item: ServerConfig) => item.id)
           }
@@ -127,7 +129,7 @@ struct ServerListPage {
           Column() {
             Text('暂无已保存的服务器')
               .fontSize(16)
-              .fontColor('#999999')
+              .fontColor($r('app.color.text_tertiary'))
           }
           .width('100%')
           .layoutWeight(1)
@@ -150,7 +152,7 @@ struct ServerListPage {
               .type(InputType.Normal)
               .width('45%')
               .height(44)
-              .fontColor('#333333')
+              .fontColor($r('app.color.text_input'))
               .onChange((value: string) => {
                 this.inputIp = value;
               })
@@ -159,7 +161,7 @@ struct ServerListPage {
               .type(InputType.Number)
               .width('45%')
               .height(44)
-              .fontColor('#333333')
+              .fontColor($r('app.color.text_input'))
               .onChange((value: string) => {
                 this.inputPort = value;
               })
@@ -174,7 +176,7 @@ struct ServerListPage {
             .fontSize(14)
             .type(ButtonType.Normal)
             .borderRadius(22)
-            .backgroundColor('#4CAF50')
+            .backgroundColor($r('app.color.success'))
             .margin({ top: 12 })
             .onClick(() => {
               this.connectManual();
@@ -185,7 +187,7 @@ struct ServerListPage {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F5F5F5')
+      .backgroundColor($r('app.color.page_background'))
       .bindContentCover(this.showDialog, this.addServerDialog(), {
         modalTransition: ModalTransition.NONE,
         onDisappear: () => {
@@ -206,48 +208,49 @@ struct ServerListPage {
         Text('添加服务器')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
           .margin({ bottom: 8 })
         Text('配置服务器连接信息，名称可留空')
           .fontSize(13)
-          .fontColor('#888888')
+          .fontColor($r('app.color.text_tertiary'))
           .margin({ bottom: 20 })
 
         Text('服务器名称')
           .fontSize(14)
-          .fontColor('#555555')
+          .fontColor($r('app.color.text_label'))
           .margin({ bottom: 4 })
         TextInput({ placeholder: '例如：生产环境、测试服务器' })
           .width('100%')
           .height(48)
-          .backgroundColor('#FFFFFF')
-          .fontColor('#333333')
+          .backgroundColor($r('app.color.input_background'))
+          .fontColor($r('app.color.text_input'))
           .onChange((value: string) => {
             this.inputName = value;
           })
 
         Text('IP地址')
           .fontSize(14)
-          .fontColor('#555555')
+          .fontColor($r('app.color.text_label'))
           .margin({ top: 12, bottom: 4 })
         TextInput({ placeholder: '例如：192.168.1.100' })
           .width('100%')
           .height(48)
-          .backgroundColor('#FFFFFF')
-          .fontColor('#333333')
+          .backgroundColor($r('app.color.input_background'))
+          .fontColor($r('app.color.text_input'))
           .onChange((value: string) => {
             this.inputIp = value;
           })
 
         Text('端口号')
           .fontSize(14)
-          .fontColor('#555555')
+          .fontColor($r('app.color.text_label'))
           .margin({ top: 12, bottom: 4 })
         TextInput({ placeholder: '例如：8080' })
           .type(InputType.Number)
           .width('100%')
           .height(48)
-          .backgroundColor('#FFFFFF')
-          .fontColor('#333333')
+          .backgroundColor($r('app.color.input_background'))
+          .fontColor($r('app.color.text_input'))
           .onChange((value: string) => {
             this.inputPort = value;
           })
@@ -259,8 +262,8 @@ struct ServerListPage {
             .fontSize(16)
             .type(ButtonType.Normal)
             .borderRadius(22)
-            .backgroundColor('#EEEEEE')
-            .fontColor('#333333')
+            .backgroundColor($r('app.color.cancel_background'))
+            .fontColor($r('app.color.text_primary'))
             .onClick(() => {
               this.showDialog = false;
             })
@@ -271,8 +274,8 @@ struct ServerListPage {
             .fontSize(16)
             .type(ButtonType.Normal)
             .borderRadius(22)
-            .backgroundColor('#1976D2')
-            .fontColor('#FFFFFF')
+            .backgroundColor($r('app.color.brand'))
+            .fontColor($r('app.color.brand_text'))
             .onClick(() => {
               this.addServer();
             })
@@ -283,13 +286,13 @@ struct ServerListPage {
       }
       .width('90%')
       .padding(24)
-      .backgroundColor('#F0F0F0')
+      .backgroundColor($r('app.color.dialog_background'))
       .borderRadius(16)
-      .border({ width: 1, color: '#CCCCCC' })
+      .border({ width: 1, color: $r('app.color.dialog_border') })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('rgba(0,0,0,0.4)')
+    .backgroundColor($r('app.color.modal_scrim'))
     .justifyContent(FlexAlign.Center)
     .onClick(() => {
       this.showDialog = false;

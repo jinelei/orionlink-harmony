@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "远程鼠标控制客户端"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "OrionLink远程鼠标控制"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "OrionLink"
     }
   ]
 }

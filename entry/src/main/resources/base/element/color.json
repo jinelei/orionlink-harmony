@@ -1,8 +1,35 @@
 {
   "color": [
-    {
-      "name": "start_window_background",
-      "value": "#FFFFFF"
-    }
+    { "name": "start_window_background", "value": "#FFFFFF" },
+    { "name": "page_background", "value": "#F5F5F5" },
+    { "name": "card_background", "value": "#FFFFFF" },
+    { "name": "toolbar_background", "value": "#FFFFFF" },
+    { "name": "dialog_background", "value": "#F0F0F0" },
+    { "name": "input_background", "value": "#FFFFFF" },
+    { "name": "log_panel_background", "value": "#FAFAFA" },
+    { "name": "touch_area_background", "value": "#E8E8E8" },
+    { "name": "text_primary", "value": "#182431" },
+    { "name": "text_secondary", "value": "#66182431" },
+    { "name": "text_tertiary", "value": "#999999" },
+    { "name": "text_hint", "value": "#CCCCCC" },
+    { "name": "text_label", "value": "#555555" },
+    { "name": "text_input", "value": "#333333" },
+    { "name": "brand", "value": "#1976D2" },
+    { "name": "brand_text", "value": "#FFFFFF" },
+    { "name": "success", "value": "#4CAF50" },
+    { "name": "warning", "value": "#FF9800" },
+    { "name": "error", "value": "#FF4444" },
+    { "name": "cancel_background", "value": "#EEEEEE" },
+    { "name": "divider", "value": "#EEEEEE" },
+    { "name": "border", "value": "#DDDDDD" },
+    { "name": "dialog_border", "value": "#CCCCCC" },
+    { "name": "card_shadow", "value": "#1A000000" },
+    { "name": "modal_scrim", "value": "#66000000" },
+    { "name": "status_connected", "value": "#4CAF50" },
+    { "name": "status_disconnected", "value": "#FF9800" },
+    { "name": "log_source_normal", "value": "#1976D2" },
+    { "name": "log_source_error", "value": "#FF4444" },
+    { "name": "log_time", "value": "#999999" },
+    { "name": "log_message", "value": "#333333" }
   ]
 }
