@@ -24,10 +24,16 @@ struct MainContentPage {
   private isTouching: boolean = false;
   private moveCount: number = 0;
   private isTwoFinger: boolean = false;
+  private twoFingerMoved: boolean = false;
   private lastFinger0X: number = 0;
   private lastFinger0Y: number = 0;
   private lastFinger1X: number = 0;
   private lastFinger1Y: number = 0;
+  private twoFingerDown0X: number = 0;
+  private twoFingerDown0Y: number = 0;
+  private twoFingerDown1X: number = 0;
+  private twoFingerDown1Y: number = 0;
+  private twoFingerDownTime: number = 0;
 
   private readonly CLICK_DURATION_THRESHOLD: number = 150;
   private readonly CLICK_DISTANCE_THRESHOLD: number = 10;
@@ -120,8 +126,39 @@ struct MainContentPage {
     if (avgDy === 0 && avgDx === 0) {
       return;
     }
+    this.twoFingerMoved = true;
     this.touchInfo = `SCROLL Δ(${avgDx}, ${avgDy})`;
     this.client.sendScroll(avgDx, avgDy);
+  }
+
+  private async handleTwoFingerUp(): Promise<void> {
+    if (!this.isTwoFinger) {
+      return;
+    }
+    this.isTwoFinger = false;
+    let elapsed = Date.now() - this.twoFingerDownTime;
+    let d0x = this.lastFinger0X - this.twoFingerDown0X;
+    let d0y = this.lastFinger0Y - this.twoFingerDown0Y;
+    let d1x = this.lastFinger1X - this.twoFingerDown1X;
+    let d1y = this.lastFinger1Y - this.twoFingerDown1Y;
+    let dist0 = Math.sqrt(d0x * d0x + d0y * d0y);
+    let dist1 = Math.sqrt(d1x * d1x + d1y * d1y);
+    if (!this.twoFingerMoved && elapsed < this.CLICK_DURATION_THRESHOLD &&
+        dist0 < this.CLICK_DISTANCE_THRESHOLD && dist1 < this.CLICK_DISTANCE_THRESHOLD) {
+      this.touchInfo = 'RIGHT CLICK';
+      this.addLog('触摸', '双指点击→右键');
+      let ok = await this.client.sendClick('right');
+      let sendMsg = `ORIONLINK|{"t":"click","button":"right"}`;
+      if (ok) {
+        this.addLog('发送', sendMsg);
+      } else {
+        this.addLog('发送失败', sendMsg);
+      }
+    } else {
+      this.touchInfo = 'SCROLL END';
+      this.addLog('触摸', '双指滚动结束');
+    }
+    this.twoFingerMoved = false;
   }
 
   build() {
@@ -176,29 +213,31 @@ struct MainContentPage {
             if (!this.isTwoFinger) {
               this.isTwoFinger = true;
               this.isTouching = false;
+              this.twoFingerMoved = false;
               let t0 = event.touches[0];
               let t1 = event.touches[1];
               this.lastFinger0X = t0.x;
               this.lastFinger0Y = t0.y;
               this.lastFinger1X = t1.x;
               this.lastFinger1Y = t1.y;
-              this.touchInfo = 'SCROLL START';
-              this.addLog('触摸', '双指滚动开始');
+              this.twoFingerDown0X = t0.x;
+              this.twoFingerDown0Y = t0.y;
+              this.twoFingerDown1X = t1.x;
+              this.twoFingerDown1Y = t1.y;
+              this.twoFingerDownTime = Date.now();
+              this.touchInfo = '2-FINGER DOWN';
+              this.addLog('触摸', '双指按下');
             }
             if (event.type === TouchType.Move) {
               let t0 = event.touches[0];
               let t1 = event.touches[1];
               this.handleTwoFingerMove(t0.x, t0.y, t1.x, t1.y);
             } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.isTwoFinger = false;
-              this.touchInfo = 'SCROLL END';
-              this.addLog('触摸', '双指滚动结束');
+              this.handleTwoFingerUp();
             }
           } else {
             if (this.isTwoFinger) {
-              this.isTwoFinger = false;
-              this.touchInfo = 'SCROLL END';
-              this.addLog('触摸', '双指滚动结束');
+              this.handleTwoFingerUp();
               return;
             }
             if (event.type === TouchType.Down) {
