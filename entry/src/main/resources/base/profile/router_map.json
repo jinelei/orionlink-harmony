@@ -1,0 +1,14 @@
+{
+  "routerMap": [
+    {
+      "name": "ServerList",
+      "pageSourceFile": "src/main/ets/pages/ServerListPage.ets",
+      "buildFunction": "ServerListPageBuilder"
+    },
+    {
+      "name": "MainContent",
+      "pageSourceFile": "src/main/ets/pages/MainContentPage.ets",
+      "buildFunction": "MainContentPageBuilder"
+    }
+  ]
+}

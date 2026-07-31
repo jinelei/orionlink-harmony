@@ -1,12 +1,26 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\jinelei\\.ohos\\config\\default_orionlink-harmony__TzuBPm_tZDiOefknpeDADanfZk7UrLEdZs8Q770GuQ=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001ADC8F3FF21F09DA21F0934C236888DAAF6120803C920B082FC14F1D667E05A815ED260C6C9BC7",
+          "profile": "C:\\Users\\jinelei\\.ohos\\config\\default_orionlink-harmony__TzuBPm_tZDiOefknpeDADanfZk7UrLEdZs8Q770GuQ=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\jinelei\\.ohos\\config\\default_orionlink-harmony__TzuBPm_tZDiOefknpeDADanfZk7UrLEdZs8Q770GuQ=.p12",
+          "storePassword": "0000001A9E04A51B951BEEF72CD19545BF72F2593E9CD92735126501FA164A36AF8590B15931839FFDE3"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
         "signingConfig": "default",
         "targetSdkVersion": "6.1.1(24)",
-        "compatibleSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "6.1.0(23)",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
           "strictMode": {
