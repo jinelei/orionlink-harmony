@@ -64,11 +64,22 @@ struct ServerListPage {
   build() {
     NavDestination() {
       Column() {
-        Text('OrionLink')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .margin({ top: 20, bottom: 8 })
+        Row() {
+          Text('OrionLink')
+            .fontSize(28)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          Text('⚙')
+            .fontSize(24)
+            .fontColor($r('app.color.text_secondary'))
+            .onClick(() => {
+              this.pathStack.pushPathByName('AppSettings', null);
+            })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16 })
+        .margin({ top: 20, bottom: 8 })
         Text('选择服务器连接')
           .fontSize(16)
           .fontColor($r('app.color.text_tertiary'))

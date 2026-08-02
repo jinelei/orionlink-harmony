@@ -1,5 +1,6 @@
 import { ServerListPageBuilder } from './ServerListPage';
 import { MainContentPageBuilder } from './MainContentPage';
+import { AppSettingsPageBuilder } from './AppSettingsPage';
 
 @Entry
 @Component
@@ -22,6 +23,8 @@ struct Index {
       ServerListPageBuilder();
     } else if (name === 'MainContent') {
       MainContentPageBuilder();
+    } else if (name === 'AppSettings') {
+      AppSettingsPageBuilder();
     }
   }
 }

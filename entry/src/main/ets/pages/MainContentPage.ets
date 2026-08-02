@@ -1,5 +1,6 @@
 import { ServerConfig } from '../model/ServerConfig';
 import { OrionLinkClient } from '../utils/OrionLinkClient';
+import { PreferencesUtil } from '../utils/PreferencesUtil';
 
 interface DebugLog {
   time: string;
@@ -15,6 +16,8 @@ struct MainContentPage {
   @State debugLogs: Array<DebugLog> = [];
   @State touchInfo: string = '';
   @State logExpanded: boolean = true;
+  @State showAccelDialog: boolean = false;
+  @State localAccelFactor: number = 1.0;
   private client: OrionLinkClient = new OrionLinkClient();
   private lastX: number = 0;
   private lastY: number = 0;
@@ -39,6 +42,9 @@ struct MainContentPage {
   private readonly CLICK_DISTANCE_THRESHOLD: number = 10;
 
   aboutToAppear(): void {
+    let context = getContext(this);
+    let globalFactor = PreferencesUtil.loadGlobalAccelerationFactor(context);
+    this.localAccelFactor = this.serverConfig.accelerationFactor > 0 ? this.serverConfig.accelerationFactor : globalFactor;
   }
 
   aboutToDisappear(): void {
@@ -85,8 +91,10 @@ struct MainContentPage {
     this.lastX = x;
     this.lastY = y;
     this.moveCount++;
-    this.touchInfo = `MOVE #${this.moveCount} Δ(${dx.toFixed(0)}, ${dy.toFixed(0)})`;
-    this.client.sendMove(Math.round(dx), Math.round(dy));
+    let accelDx = Math.round(dx * this.localAccelFactor);
+    let accelDy = Math.round(dy * this.localAccelFactor);
+    this.touchInfo = `MOVE #${this.moveCount} Δ(${accelDx}, ${accelDy}) x${this.localAccelFactor.toFixed(1)}`;
+    this.client.sendMove(accelDx, accelDy);
   }
 
   private async handleTouchUp(x: number, y: number): Promise<void> {
@@ -117,8 +125,8 @@ struct MainContentPage {
     let dy0 = finger0Y - this.lastFinger0Y;
     let dx1 = finger1X - this.lastFinger1X;
     let dy1 = finger1Y - this.lastFinger1Y;
-    let avgDy = Math.round((dy0 + dy1) / 2);
-    let avgDx = Math.round((dx0 + dx1) / 2);
+    let avgDy = Math.round((dy0 + dy1) / 2 * this.localAccelFactor);
+    let avgDx = Math.round((dx0 + dx1) / 2 * this.localAccelFactor);
     this.lastFinger0X = finger0X;
     this.lastFinger0Y = finger0Y;
     this.lastFinger1X = finger1X;
@@ -127,7 +135,7 @@ struct MainContentPage {
       return;
     }
     this.twoFingerMoved = true;
-    this.touchInfo = `SCROLL Δ(${avgDx}, ${avgDy})`;
+    this.touchInfo = `SCROLL Δ(${avgDx}, ${avgDy}) x${this.localAccelFactor.toFixed(1)}`;
     this.client.sendScroll(avgDx, avgDy);
   }
 
@@ -161,6 +169,21 @@ struct MainContentPage {
     this.twoFingerMoved = false;
   }
 
+  private saveAccelConfig(): void {
+    let context = getContext(this);
+    if (this.serverConfig.id.length > 0) {
+      this.serverConfig.accelerationFactor = this.localAccelFactor;
+      let serverList = PreferencesUtil.loadServerList(context);
+      for (let i = 0; i < serverList.length; i++) {
+        if (serverList[i].id === this.serverConfig.id) {
+          serverList[i].accelerationFactor = this.localAccelFactor;
+          break;
+        }
+      }
+      PreferencesUtil.saveServerList(context, serverList);
+    }
+  }
+
   build() {
     NavDestination() {
       Column() {
@@ -189,6 +212,15 @@ struct MainContentPage {
             .fontColor($r('app.color.text_tertiary'))
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+            .margin({ left: 8, right: 8 })
+
+          Text('⚙')
+            .fontSize(22)
+            .fontColor($r('app.color.text_secondary'))
+            .onClick(() => {
+              this.showAccelDialog = true;
+            })
         }
         .width('100%')
         .height(48)
@@ -312,6 +344,12 @@ struct MainContentPage {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.page_background'))
+      .bindContentCover(this.showAccelDialog, this.accelConfigDialog(), {
+        modalTransition: ModalTransition.NONE,
+        onDisappear: () => {
+          this.showAccelDialog = false;
+        }
+      })
     }
     .hideTitleBar(true)
     .onReady((context: NavDestinationContext) => {
@@ -321,6 +359,109 @@ struct MainContentPage {
         this.serverConfig = param;
       }
       this.doConnect();
+    })
+  }
+
+  @Builder
+  accelConfigDialog() {
+    Column() {
+      Column() {
+        Text('加速度配置')
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+          .margin({ bottom: 8 })
+        Text(this.serverConfig.id.length > 0 ? `当前服务器：${this.serverConfig.name}` : '快速连接模式，修改仅本次生效')
+          .fontSize(13)
+          .fontColor($r('app.color.text_tertiary'))
+          .margin({ bottom: 20 })
+
+        Text('滑动偏移量 = 滑动距离 × 加速度系数')
+          .fontSize(13)
+          .fontColor($r('app.color.text_tertiary'))
+          .margin({ bottom: 16 })
+
+        Row() {
+          Text('加速度系数')
+            .fontSize(15)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          Text(this.localAccelFactor.toFixed(2))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.brand'))
+        }
+        .width('100%')
+        .margin({ bottom: 8 })
+
+        Slider({
+          value: this.localAccelFactor,
+          min: 0.1,
+          max: 5.0,
+          step: 0.1,
+          style: SliderStyle.OutSet
+        })
+          .width('100%')
+          .trackColor($r('app.color.divider'))
+          .selectedColor($r('app.color.brand'))
+          .onChange((value: number) => {
+            this.localAccelFactor = Math.round(value * 100) / 100;
+          })
+
+        Row() {
+          Text('0.1')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+          Blank()
+          Text('5.0')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+        }
+        .width('100%')
+        .margin({ top: 4 })
+
+        Row() {
+          Button('重置默认')
+            .width('30%')
+            .height(40)
+            .fontSize(14)
+            .type(ButtonType.Normal)
+            .borderRadius(20)
+            .backgroundColor($r('app.color.cancel_background'))
+            .fontColor($r('app.color.text_primary'))
+            .onClick(() => {
+              this.localAccelFactor = 1.0;
+            })
+
+          Button('保存')
+            .width('30%')
+            .height(40)
+            .fontSize(14)
+            .type(ButtonType.Normal)
+            .borderRadius(20)
+            .backgroundColor($r('app.color.brand'))
+            .fontColor($r('app.color.brand_text'))
+            .onClick(() => {
+              this.saveAccelConfig();
+              this.showAccelDialog = false;
+            })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
+        .margin({ top: 24 })
+      }
+      .width('90%')
+      .padding(24)
+      .backgroundColor($r('app.color.dialog_background'))
+      .borderRadius(16)
+      .border({ width: 1, color: $r('app.color.dialog_border') })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.modal_scrim'))
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showAccelDialog = false;
     })
   }
 }

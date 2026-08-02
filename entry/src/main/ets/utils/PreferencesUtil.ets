@@ -3,6 +3,7 @@ import { ServerConfig } from '../model/ServerConfig';
 
 const PREFERENCES_NAME = 'orionlink_prefs';
 const KEY_SERVER_LIST = 'server_list';
+const KEY_GLOBAL_ACCELERATION = 'global_acceleration_factor';
 
 export class PreferencesUtil {
   private static getPreference(context: Context): preferences.Preferences {
@@ -17,11 +18,13 @@ export class PreferencesUtil {
     let result: Array<ServerConfig> = [];
     for (let i = 0; i < arr.length; i++) {
       let item = arr[i];
+      let factor = item['accelerationFactor'] as number;
       let config = new ServerConfig(
         item['id'] as string,
         item['name'] as string,
         item['ip'] as string,
-        item['port'] as number
+        item['port'] as number,
+        factor !== undefined ? factor : 1.0
       );
       result.push(config);
     }
@@ -36,12 +39,24 @@ export class PreferencesUtil {
         'id': list[i].id,
         'name': list[i].name,
         'ip': list[i].ip,
-        'port': list[i].port
+        'port': list[i].port,
+        'accelerationFactor': list[i].accelerationFactor
       };
       arr.push(item);
     }
     let json = JSON.stringify(arr);
     prefs.putSync(KEY_SERVER_LIST, json);
+    prefs.flush();
+  }
+
+  static loadGlobalAccelerationFactor(context: Context): number {
+    let prefs = PreferencesUtil.getPreference(context);
+    return prefs.getSync(KEY_GLOBAL_ACCELERATION, 1.0) as number;
+  }
+
+  static saveGlobalAccelerationFactor(context: Context, factor: number): void {
+    let prefs = PreferencesUtil.getPreference(context);
+    prefs.putSync(KEY_GLOBAL_ACCELERATION, factor);
     prefs.flush();
   }
 }

@@ -9,6 +9,11 @@
       "name": "MainContent",
       "pageSourceFile": "src/main/ets/pages/MainContentPage.ets",
       "buildFunction": "MainContentPageBuilder"
+    },
+    {
+      "name": "AppSettings",
+      "pageSourceFile": "src/main/ets/pages/AppSettingsPage.ets",
+      "buildFunction": "AppSettingsPageBuilder"
     }
   ]
 }
