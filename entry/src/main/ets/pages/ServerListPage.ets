@@ -59,18 +59,6 @@ struct ServerListPage {
     this.pathStack.pushPathByName('MainContent', config);
   }
 
-  private connectManual(): void {
-    if (this.inputIp === '' || this.inputPort === '') {
-      return;
-    }
-    let port = parseInt(this.inputPort, 10);
-    if (isNaN(port) || port <= 0 || port > 65535) {
-      return;
-    }
-    let config = new ServerConfig('', '', this.inputIp, port);
-    this.pathStack.pushPathByName('MainContent', config);
-  }
-
   build() {
     NavDestination() {
       Column() {
@@ -157,54 +145,19 @@ struct ServerListPage {
           .justifyContent(FlexAlign.Center)
         }
 
-        Column() {
-          Button('添加服务器')
-            .width('100%')
-            .height(48)
-            .fontSize(16)
-            .type(ButtonType.Normal)
-            .borderRadius(24)
-            .onClick(() => {
-              this.showDialog = true;
-            })
-
-          Row() {
-            TextInput({ placeholder: 'IP地址' })
-              .type(InputType.Normal)
-              .width('45%')
-              .height(44)
-              .fontColor($r('app.color.text_input'))
-              .onChange((value: string) => {
-                this.inputIp = value;
-              })
-
-            TextInput({ placeholder: '端口' })
-              .type(InputType.Number)
-              .width('45%')
-              .height(44)
-              .fontColor($r('app.color.text_input'))
-              .onChange((value: string) => {
-                this.inputPort = value;
-              })
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.SpaceBetween)
-          .margin({ top: 12 })
-
-          Button('快速连接')
-            .width('100%')
-            .height(44)
-            .fontSize(14)
-            .type(ButtonType.Normal)
-            .borderRadius(22)
-            .backgroundColor($r('app.color.success'))
-            .margin({ top: 12 })
-            .onClick(() => {
-              this.connectManual();
-            })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, bottom: 16 })
+         Column() {
+           Button('添加服务器')
+             .width('100%')
+             .height(48)
+             .fontSize(16)
+             .type(ButtonType.Normal)
+             .borderRadius(24)
+             .onClick(() => {
+               this.showDialog = true;
+             })
+         }
+         .width('100%')
+         .padding({ left: 16, right: 16, bottom: 16 })
       }
       .width('100%')
       .height('100%')
