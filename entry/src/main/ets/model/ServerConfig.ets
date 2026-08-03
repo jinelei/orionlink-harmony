@@ -4,7 +4,7 @@ export class ServerConfig {
   ip: string = '';
   port: number = 0;
   accelerationFactor: number = 1.0;
-  scrollAccelerationFactor: number = 1.0;
+  scrollAccelerationFactor: number = 0.5;
 
   constructor(id: string, name: string, ip: string, port: number, accelerationFactor?: number, scrollAccelerationFactor?: number) {
     this.id = id;

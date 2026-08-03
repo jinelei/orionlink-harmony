@@ -66,7 +66,7 @@ export class PreferencesUtil {
 
   static loadGlobalScrollAccelerationFactor(context: Context): number {
     let prefs = PreferencesUtil.getPreference(context);
-    return prefs.getSync(KEY_GLOBAL_SCROLL_ACCELERATION, 1.0) as number;
+    return prefs.getSync(KEY_GLOBAL_SCROLL_ACCELERATION, 0.5) as number;
   }
 
   static saveGlobalScrollAccelerationFactor(context: Context, factor: number): void {

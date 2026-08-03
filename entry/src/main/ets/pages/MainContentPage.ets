@@ -43,6 +43,10 @@ struct MainContentPage {
   private twoFingerDownTime: number = 0;
   private lastMoveTime: number = 0;
   private lastTwoFingerMoveTime: number = 0;
+  private moveAccumX: number = 0;
+  private moveAccumY: number = 0;
+  private scrollAccumX: number = 0;
+  private scrollAccumY: number = 0;
 
   private readonly CLICK_DURATION_THRESHOLD: number = 150;
   private readonly CLICK_DISTANCE_THRESHOLD: number = 10;
@@ -86,6 +90,13 @@ struct MainContentPage {
     }
   }
 
+  private roundSym(value: number): number {
+    if (value >= 0) {
+      return Math.floor(value + 0.5);
+    }
+    return Math.ceil(value - 0.5);
+  }
+
   private computeEffectiveFactor(dx: number, dy: number, deltaTime: number, factor: number): number {
     if (deltaTime <= 0) {
       return 1.0;
@@ -105,6 +116,8 @@ struct MainContentPage {
     this.lastMoveTime = Date.now();
     this.isTouching = true;
     this.moveCount = 0;
+    this.moveAccumX = 0;
+    this.moveAccumY = 0;
     this.touchInfo = `DOWN (${x.toFixed(0)}, ${y.toFixed(0)})`;
     this.addLog('触摸', `按下 (${x.toFixed(0)}, ${y.toFixed(0)})`);
   }
@@ -122,8 +135,12 @@ struct MainContentPage {
     this.lastMoveTime = now;
     this.moveCount++;
     let effectiveFactor = this.computeEffectiveFactor(dx, dy, deltaTime, this.localAccelFactor);
-    let accelDx = Math.round(dx * effectiveFactor);
-    let accelDy = Math.round(dy * effectiveFactor);
+    this.moveAccumX += dx * effectiveFactor;
+    this.moveAccumY += dy * effectiveFactor;
+    let accelDx = this.roundSym(this.moveAccumX);
+    let accelDy = this.roundSym(this.moveAccumY);
+    this.moveAccumX -= accelDx;
+    this.moveAccumY -= accelDy;
     this.touchInfo = `MOVE #${this.moveCount} Δ(${accelDx}, ${accelDy}) ×${effectiveFactor.toFixed(2)}`;
     this.client.sendMove(accelDx, accelDy);
   }
@@ -166,8 +183,12 @@ struct MainContentPage {
     this.lastFinger1Y = finger1Y;
     this.lastTwoFingerMoveTime = now;
     let effectiveFactor = this.computeEffectiveFactor(avgDx, avgDy, deltaTime, this.localScrollAccelFactor);
-    let sendDx = Math.round(avgDx * effectiveFactor);
-    let sendDy = Math.round(avgDy * effectiveFactor);
+    this.scrollAccumX += avgDx * effectiveFactor;
+    this.scrollAccumY += avgDy * effectiveFactor;
+    let sendDx = this.roundSym(this.scrollAccumX);
+    let sendDy = this.roundSym(this.scrollAccumY);
+    this.scrollAccumX -= sendDx;
+    this.scrollAccumY -= sendDy;
     if (sendDy === 0 && sendDx === 0) {
       return;
     }
@@ -232,24 +253,27 @@ struct MainContentPage {
           .backgroundColor($r('app.color.toolbar_background'))
 
         Row() {
-          Row()
-            .width(10)
-            .height(10)
-            .borderRadius(5)
-            .backgroundColor(this.connected ? $r('app.color.status_connected') : $r('app.color.status_disconnected'))
-
-          Text(this.connected ? '已连接' : '未连接')
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .margin({ left: 6 })
-
-          Text(`${this.serverConfig.ip}:${this.serverConfig.port}`)
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .margin({ left: 12 })
-
-          Blank()
+          Column() {
+            Row() {
+              Row()
+                .width(8)
+                .height(8)
+                .borderRadius(4)
+                .backgroundColor(this.connected ? $r('app.color.status_connected') : $r('app.color.status_disconnected'))
+              Text(this.connected ? '已连接' : '未连接')
+                .fontSize(12)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+                .margin({ left: 6 })
+            }
+            Text(this.serverConfig.name.length > 0 ? this.serverConfig.name : `${this.serverConfig.ip}:${this.serverConfig.port}`)
+              .fontSize(11)
+              .fontColor($r('app.color.text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .margin({ top: 2 })
+          }
+          .alignItems(HorizontalAlign.Start)
 
           Text(this.touchInfo)
             .fontSize(12)
@@ -257,7 +281,8 @@ struct MainContentPage {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .layoutWeight(1)
-            .margin({ left: 8, right: 8 })
+            .textAlign(TextAlign.Center)
+            .margin({ left: 12, right: 12 })
 
           Text('⚙')
             .fontSize(22)
@@ -290,6 +315,8 @@ struct MainContentPage {
               this.isTwoFinger = true;
               this.isTouching = false;
               this.twoFingerMoved = false;
+              this.scrollAccumX = 0;
+              this.scrollAccumY = 0;
               let t0 = event.touches[0];
               let t1 = event.touches[1];
               this.lastFinger0X = t0.x;

@@ -5,7 +5,7 @@ import { window } from '@kit.ArkUI';
 struct AppSettingsPage {
   private pathStack: NavPathStack = new NavPathStack();
   @State accelerationFactor: number = 1.0;
-  @State scrollAccelerationFactor: number = 1.0;
+  @State scrollAccelerationFactor: number = 0.5;
   @State topSafeHeight: number = 0;
   @State bottomSafeHeight: number = 0;
 
@@ -153,7 +153,7 @@ struct AppSettingsPage {
               .fontColor($r('app.color.text_primary'))
               .onClick(() => {
                 this.accelerationFactor = 1.0;
-                this.scrollAccelerationFactor = 1.0;
+                this.scrollAccelerationFactor = 0.5;
                 this.save();
               })
           }
