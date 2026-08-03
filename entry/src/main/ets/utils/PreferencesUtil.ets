@@ -4,6 +4,7 @@ import { ServerConfig } from '../model/ServerConfig';
 const PREFERENCES_NAME = 'orionlink_prefs';
 const KEY_SERVER_LIST = 'server_list';
 const KEY_GLOBAL_ACCELERATION = 'global_acceleration_factor';
+const KEY_GLOBAL_SCROLL_ACCELERATION = 'global_scroll_acceleration_factor';
 
 export class PreferencesUtil {
   private static getPreference(context: Context): preferences.Preferences {
@@ -19,12 +20,14 @@ export class PreferencesUtil {
     for (let i = 0; i < arr.length; i++) {
       let item = arr[i];
       let factor = item['accelerationFactor'] as number;
+      let scrollFactor = item['scrollAccelerationFactor'] as number;
       let config = new ServerConfig(
         item['id'] as string,
         item['name'] as string,
         item['ip'] as string,
         item['port'] as number,
-        factor !== undefined ? factor : 1.0
+        factor !== undefined ? factor : 1.0,
+        scrollFactor !== undefined ? scrollFactor : 1.0
       );
       result.push(config);
     }
@@ -40,7 +43,8 @@ export class PreferencesUtil {
         'name': list[i].name,
         'ip': list[i].ip,
         'port': list[i].port,
-        'accelerationFactor': list[i].accelerationFactor
+        'accelerationFactor': list[i].accelerationFactor,
+        'scrollAccelerationFactor': list[i].scrollAccelerationFactor
       };
       arr.push(item);
     }
@@ -57,6 +61,17 @@ export class PreferencesUtil {
   static saveGlobalAccelerationFactor(context: Context, factor: number): void {
     let prefs = PreferencesUtil.getPreference(context);
     prefs.putSync(KEY_GLOBAL_ACCELERATION, factor);
+    prefs.flush();
+  }
+
+  static loadGlobalScrollAccelerationFactor(context: Context): number {
+    let prefs = PreferencesUtil.getPreference(context);
+    return prefs.getSync(KEY_GLOBAL_SCROLL_ACCELERATION, 1.0) as number;
+  }
+
+  static saveGlobalScrollAccelerationFactor(context: Context, factor: number): void {
+    let prefs = PreferencesUtil.getPreference(context);
+    prefs.putSync(KEY_GLOBAL_SCROLL_ACCELERATION, factor);
     prefs.flush();
   }
 }

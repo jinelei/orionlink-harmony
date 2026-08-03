@@ -1,6 +1,7 @@
 import { ServerConfig } from '../model/ServerConfig';
 import { OrionLinkClient } from '../utils/OrionLinkClient';
 import { PreferencesUtil } from '../utils/PreferencesUtil';
+import { window } from '@kit.ArkUI';
 
 interface DebugLog {
   time: string;
@@ -18,6 +19,9 @@ struct MainContentPage {
   @State logExpanded: boolean = true;
   @State showAccelDialog: boolean = false;
   @State localAccelFactor: number = 1.0;
+  @State localScrollAccelFactor: number = 1.0;
+  @State topSafeHeight: number = 0;
+  @State bottomSafeHeight: number = 0;
   private client: OrionLinkClient = new OrionLinkClient();
   private lastX: number = 0;
   private lastY: number = 0;
@@ -37,14 +41,26 @@ struct MainContentPage {
   private twoFingerDown1X: number = 0;
   private twoFingerDown1Y: number = 0;
   private twoFingerDownTime: number = 0;
+  private lastMoveTime: number = 0;
+  private lastTwoFingerMoveTime: number = 0;
 
   private readonly CLICK_DURATION_THRESHOLD: number = 150;
   private readonly CLICK_DISTANCE_THRESHOLD: number = 10;
+  private readonly SIGMOID_V50: number = 0.5;
+  private readonly SIGMOID_K: number = 10.0;
 
   aboutToAppear(): void {
     let context = getContext(this);
     let globalFactor = PreferencesUtil.loadGlobalAccelerationFactor(context);
     this.localAccelFactor = this.serverConfig.accelerationFactor > 0 ? this.serverConfig.accelerationFactor : globalFactor;
+    let globalScrollFactor = PreferencesUtil.loadGlobalScrollAccelerationFactor(context);
+    this.localScrollAccelFactor = this.serverConfig.scrollAccelerationFactor > 0 ? this.serverConfig.scrollAccelerationFactor : globalScrollFactor;
+    window.getLastWindow(context).then((win: window.Window) => {
+      let systemArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+      this.topSafeHeight = px2vp(systemArea.topRect.height);
+      let indicatorArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      this.bottomSafeHeight = px2vp(indicatorArea.bottomRect.height);
+    });
   }
 
   aboutToDisappear(): void {
@@ -70,12 +86,23 @@ struct MainContentPage {
     }
   }
 
+  private computeEffectiveFactor(dx: number, dy: number, deltaTime: number, factor: number): number {
+    if (deltaTime <= 0) {
+      return 1.0;
+    }
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    let speed = distance / deltaTime;
+    let t = 1.0 / (1.0 + Math.exp(-this.SIGMOID_K * (speed - this.SIGMOID_V50)));
+    return 1.0 + (factor - 1.0) * t;
+  }
+
   private async handleTouchDown(x: number, y: number): Promise<void> {
     this.lastX = x;
     this.lastY = y;
     this.downX = x;
     this.downY = y;
     this.downTime = Date.now();
+    this.lastMoveTime = Date.now();
     this.isTouching = true;
     this.moveCount = 0;
     this.touchInfo = `DOWN (${x.toFixed(0)}, ${y.toFixed(0)})`;
@@ -86,14 +113,18 @@ struct MainContentPage {
     if (!this.isTouching) {
       return;
     }
+    let now = Date.now();
     let dx = x - this.lastX;
     let dy = y - this.lastY;
+    let deltaTime = now - this.lastMoveTime;
     this.lastX = x;
     this.lastY = y;
+    this.lastMoveTime = now;
     this.moveCount++;
-    let accelDx = Math.round(dx * this.localAccelFactor);
-    let accelDy = Math.round(dy * this.localAccelFactor);
-    this.touchInfo = `MOVE #${this.moveCount} Δ(${accelDx}, ${accelDy}) x${this.localAccelFactor.toFixed(1)}`;
+    let effectiveFactor = this.computeEffectiveFactor(dx, dy, deltaTime, this.localAccelFactor);
+    let accelDx = Math.round(dx * effectiveFactor);
+    let accelDy = Math.round(dy * effectiveFactor);
+    this.touchInfo = `MOVE #${this.moveCount} Δ(${accelDx}, ${accelDy}) ×${effectiveFactor.toFixed(2)}`;
     this.client.sendMove(accelDx, accelDy);
   }
 
@@ -121,22 +152,28 @@ struct MainContentPage {
   }
 
   private handleTwoFingerMove(finger0X: number, finger0Y: number, finger1X: number, finger1Y: number): void {
+    let now = Date.now();
     let dx0 = finger0X - this.lastFinger0X;
     let dy0 = finger0Y - this.lastFinger0Y;
     let dx1 = finger1X - this.lastFinger1X;
     let dy1 = finger1Y - this.lastFinger1Y;
-    let avgDy = Math.round((dy0 + dy1) / 2 * this.localAccelFactor);
-    let avgDx = Math.round((dx0 + dx1) / 2 * this.localAccelFactor);
+    let avgDx = (dx0 + dx1) / 2;
+    let avgDy = (dy0 + dy1) / 2;
+    let deltaTime = now - this.lastTwoFingerMoveTime;
     this.lastFinger0X = finger0X;
     this.lastFinger0Y = finger0Y;
     this.lastFinger1X = finger1X;
     this.lastFinger1Y = finger1Y;
-    if (avgDy === 0 && avgDx === 0) {
+    this.lastTwoFingerMoveTime = now;
+    let effectiveFactor = this.computeEffectiveFactor(avgDx, avgDy, deltaTime, this.localScrollAccelFactor);
+    let sendDx = Math.round(avgDx * effectiveFactor);
+    let sendDy = Math.round(avgDy * effectiveFactor);
+    if (sendDy === 0 && sendDx === 0) {
       return;
     }
     this.twoFingerMoved = true;
-    this.touchInfo = `SCROLL Δ(${avgDx}, ${avgDy}) x${this.localAccelFactor.toFixed(1)}`;
-    this.client.sendScroll(avgDx, avgDy);
+    this.touchInfo = `SCROLL Δ(${sendDx}, ${sendDy}) ×${effectiveFactor.toFixed(2)}`;
+    this.client.sendScroll(sendDx, sendDy);
   }
 
   private async handleTwoFingerUp(): Promise<void> {
@@ -173,10 +210,12 @@ struct MainContentPage {
     let context = getContext(this);
     if (this.serverConfig.id.length > 0) {
       this.serverConfig.accelerationFactor = this.localAccelFactor;
+      this.serverConfig.scrollAccelerationFactor = this.localScrollAccelFactor;
       let serverList = PreferencesUtil.loadServerList(context);
       for (let i = 0; i < serverList.length; i++) {
         if (serverList[i].id === this.serverConfig.id) {
           serverList[i].accelerationFactor = this.localAccelFactor;
+          serverList[i].scrollAccelerationFactor = this.localScrollAccelFactor;
           break;
         }
       }
@@ -187,6 +226,11 @@ struct MainContentPage {
   build() {
     NavDestination() {
       Column() {
+        Column()
+          .width('100%')
+          .height(this.topSafeHeight)
+          .backgroundColor($r('app.color.toolbar_background'))
+
         Row() {
           Row()
             .width(10)
@@ -257,6 +301,7 @@ struct MainContentPage {
               this.twoFingerDown1X = t1.x;
               this.twoFingerDown1Y = t1.y;
               this.twoFingerDownTime = Date.now();
+              this.lastTwoFingerMoveTime = Date.now();
               this.touchInfo = '2-FINGER DOWN';
               this.addLog('触摸', '双指按下');
             }
@@ -284,62 +329,6 @@ struct MainContentPage {
             }
           }
         })
-
-        Column() {
-          Row() {
-            Text('调试日志')
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
-            Blank()
-            Text(`共${this.debugLogs.length}条`)
-              .fontSize(12)
-              .fontColor($r('app.color.text_tertiary'))
-              .margin({ right: 8 })
-            Text(this.logExpanded ? '▼' : '▲')
-              .fontSize(12)
-              .fontColor($r('app.color.text_tertiary'))
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12 })
-          .height(32)
-          .alignItems(VerticalAlign.Center)
-          .onClick(() => {
-            this.logExpanded = !this.logExpanded;
-          })
-
-          if (this.logExpanded) {
-            List() {
-              ForEach(this.debugLogs, (log: DebugLog, index: number) => {
-                ListItem() {
-                  Row() {
-                    Text(log.time)
-                      .fontSize(11)
-                      .fontColor($r('app.color.log_time'))
-                      .width(80)
-                    Text(`[${log.source}]`)
-                      .fontSize(11)
-                      .fontColor(log.source === '发送失败' ? $r('app.color.log_source_error') : $r('app.color.log_source_normal'))
-                      .width(60)
-                    Text(log.message)
-                      .fontSize(11)
-                      .fontColor($r('app.color.log_message'))
-                      .layoutWeight(1)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  }
-                  .width('100%')
-                  .padding({ left: 12, right: 12, top: 2, bottom: 2 })
-                }
-              }, (log: DebugLog, index: number) => `${log.time}_${index}`)
-            }
-            .width('100%')
-            .height(180)
-            .divider({ strokeWidth: 0.5, color: $r('app.color.divider') })
-          }
-        }
-        .width('100%')
-        .backgroundColor($r('app.color.log_panel_background'))
       }
       .width('100%')
       .height('100%')
@@ -366,23 +355,29 @@ struct MainContentPage {
   accelConfigDialog() {
     Column() {
       Column() {
-        Text('加速度配置')
+        Text('设置')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
           .margin({ bottom: 8 })
-        Text(this.serverConfig.id.length > 0 ? `当前服务器：${this.serverConfig.name}` : '快速连接模式，修改仅本次生效')
+        Text(this.serverConfig.id.length > 0 ? `${this.serverConfig.name}` : '快速连接模式')
           .fontSize(13)
           .fontColor($r('app.color.text_tertiary'))
           .margin({ bottom: 20 })
 
-        Text('滑动偏移量 = 滑动距离 × 加速度系数')
+        Text('加速度配置')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+          .margin({ bottom: 8 })
+
+        Text('低速滑动保持1:1精准定位，高速滑动时系数逐步生效')
           .fontSize(13)
           .fontColor($r('app.color.text_tertiary'))
           .margin({ bottom: 16 })
 
         Row() {
-          Text('加速度系数')
+          Text('移动加速度')
             .fontSize(15)
             .fontColor($r('app.color.text_primary'))
           Blank()
@@ -418,10 +413,49 @@ struct MainContentPage {
             .fontColor($r('app.color.text_tertiary'))
         }
         .width('100%')
+        .margin({ top: 4, bottom: 16 })
+
+        Row() {
+          Text('滚动加速度')
+            .fontSize(15)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          Text(this.localScrollAccelFactor.toFixed(2))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.brand'))
+        }
+        .width('100%')
+        .margin({ bottom: 8 })
+
+        Slider({
+          value: this.localScrollAccelFactor,
+          min: 0.1,
+          max: 5.0,
+          step: 0.1,
+          style: SliderStyle.OutSet
+        })
+          .width('100%')
+          .trackColor($r('app.color.divider'))
+          .selectedColor($r('app.color.brand'))
+          .onChange((value: number) => {
+            this.localScrollAccelFactor = Math.round(value * 100) / 100;
+          })
+
+        Row() {
+          Text('0.1')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+          Blank()
+          Text('5.0')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+        }
+        .width('100%')
         .margin({ top: 4 })
 
         Row() {
-          Button('重置默认')
+          Button('重置')
             .width('30%')
             .height(40)
             .fontSize(14)
@@ -431,6 +465,7 @@ struct MainContentPage {
             .fontColor($r('app.color.text_primary'))
             .onClick(() => {
               this.localAccelFactor = 1.0;
+              this.localScrollAccelFactor = 1.0;
             })
 
           Button('保存')
@@ -449,9 +484,63 @@ struct MainContentPage {
         .width('100%')
         .justifyContent(FlexAlign.SpaceBetween)
         .margin({ top: 24 })
+
+        Divider()
+          .margin({ top: 20, bottom: 12 })
+          .color($r('app.color.divider'))
+
+        Row() {
+          Text('调试日志')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          Text(`共${this.debugLogs.length}条`)
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+            .margin({ right: 8 })
+          Text(this.logExpanded ? '▼' : '▲')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+        }
+        .width('100%')
+        .onClick(() => {
+          this.logExpanded = !this.logExpanded;
+        })
+
+        if (this.logExpanded) {
+          List() {
+            ForEach(this.debugLogs, (log: DebugLog, index: number) => {
+              ListItem() {
+                Row() {
+                  Text(log.time)
+                    .fontSize(11)
+                    .fontColor($r('app.color.log_time'))
+                    .width(80)
+                  Text(`[${log.source}]`)
+                    .fontSize(11)
+                    .fontColor(log.source === '发送失败' ? $r('app.color.log_source_error') : $r('app.color.log_source_normal'))
+                    .width(60)
+                  Text(log.message)
+                    .fontSize(11)
+                    .fontColor($r('app.color.log_message'))
+                    .layoutWeight(1)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                .width('100%')
+                .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+              }
+            }, (log: DebugLog, index: number) => `${log.time}_${index}`)
+          }
+          .width('100%')
+          .height(200)
+          .divider({ strokeWidth: 0.5, color: $r('app.color.divider') })
+          .margin({ top: 8 })
+        }
       }
       .width('90%')
-      .padding(24)
+      .padding(20)
       .backgroundColor($r('app.color.dialog_background'))
       .borderRadius(16)
       .border({ width: 1, color: $r('app.color.dialog_border') })

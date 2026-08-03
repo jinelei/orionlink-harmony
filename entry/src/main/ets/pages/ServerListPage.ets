@@ -1,5 +1,6 @@
 import { ServerConfig } from '../model/ServerConfig';
 import { PreferencesUtil } from '../utils/PreferencesUtil';
+import { window } from '@kit.ArkUI';
 
 @Component
 struct ServerListPage {
@@ -9,9 +10,18 @@ struct ServerListPage {
   @State inputIp: string = '';
   @State inputPort: string = '';
   @State showDialog: boolean = false;
+  @State topSafeHeight: number = 0;
+  @State bottomSafeHeight: number = 0;
 
   aboutToAppear(): void {
     this.loadServers();
+    let context = getContext(this);
+    window.getLastWindow(context).then((win: window.Window) => {
+      let systemArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+      this.topSafeHeight = px2vp(systemArea.topRect.height);
+      let indicatorArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      this.bottomSafeHeight = px2vp(indicatorArea.bottomRect.height);
+    });
   }
 
   private loadServers(): void {
@@ -199,6 +209,7 @@ struct ServerListPage {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.page_background'))
+      .padding({ top: this.topSafeHeight, bottom: this.bottomSafeHeight })
       .bindContentCover(this.showDialog, this.addServerDialog(), {
         modalTransition: ModalTransition.NONE,
         onDisappear: () => {
